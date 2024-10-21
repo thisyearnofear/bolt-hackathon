@@ -36,7 +36,7 @@ function App() {
 				<h1 className="frame__title">BatchedMesh & Post processing</h1>
 				<a className="frame__back" href="https://tympanus.net/codrops/?p=">Article</a>
 				<a className="frame__archive" href="https://tympanus.net/codrops/demos/">All demos</a>
-				<a className="frame__github" href="https://github.com/codrops/">GitHub</a>
+				<a className="frame__github" href="https://github.com/ULuIQ12/codrops-batchedmesh">GitHub</a>
 				
 				<nav className="frame__tags">
 					<a href="https://tympanus.net/codrops/demos/?tag=#batchedmesh">#batchedmesh</a>

@@ -1,50 +1,26 @@
-# React + TypeScript + Vite
+#  Three.js : BatchedMesh and Post processing with WebGPURenderer
+![BatchedMesh and Post processing](./assetsSrc/featured_image.jpg "BatchedMesh and Post processing")
+This project is a simple demo that focuses on the recent `WebGPURenderer` from Three.js, as well as the use of the `BatchedMesh` object. It also features the use of some new version of the post-processing. The project is built using Vite and React.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Installation
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
-
-- Configure the top-level `parserOptions` property like this:
-
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+To get started, clone the repository and install the dependencies:
+```sh
+git clone https://github.com/ULuIQ12/codrops-batchedmesh.git
+cd codrops-batchedmesh
+npm install
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
-
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
-
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
+## Build and Run
+```sh
+npm run dev
 ```
+
+## Features
+. Utilizes the latest WebGPURenderer from Three.js.
+. Demonstrates the use of BatchedMesh for efficient rendering.
+. Includes advanced post-processing techniques.
+. Built with Vite and React for a modern development experience.
+
+## License 
+This project is licensed under the MIT License.
