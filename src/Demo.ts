@@ -1,5 +1,5 @@
 
-import { Clock, PerspectiveCamera, Vector2, Scene, ACESFilmicToneMapping, Box2, MathUtils, BufferGeometry, PlaneGeometry, Mesh, Vector3, Color, EquirectangularReflectionMapping, BufferAttribute, BatchedMesh, Object3D, Plane, MeshStandardMaterial, MeshPhysicalMaterial, pass, PostProcessing, Renderer, fxaa, dof, ao, uniform, output, mrt, transformedNormalView, Raycaster, viewportUV, clamp, FloatType } from "three/webgpu";
+import { Clock, PerspectiveCamera, Vector2, Scene, ACESFilmicToneMapping, Box2, MathUtils, BufferGeometry, PlaneGeometry, Mesh, Vector3, Color, EquirectangularReflectionMapping, BufferAttribute, BatchedMesh, Object3D, Plane, MeshStandardMaterial, MeshPhysicalMaterial, pass, PostProcessing, Renderer, fxaa, dof, ao, uniform, output, mrt, transformedNormalView, Raycaster, viewportUV, clamp, FloatType, MeshStandardNodeMaterial, MeshPhysicalNodeMaterial } from "three/webgpu";
 import { OrbitControls, UltraHDRLoader } from "three/examples/jsm/Addons.js";
 import WebGPU from "three/examples/jsm/capabilities/WebGPU.js";
 import { ABlock } from "./lib/ABlock";
@@ -151,7 +151,7 @@ export class Demo {
 
         const groundGeom: BufferGeometry = new PlaneGeometry(148, 148, 1, 1);
         groundGeom.rotateX(-Math.PI * 0.5);
-        const groundMat: MeshStandardMaterial = new MeshStandardMaterial({ color: 0x333333 });
+        const groundMat: MeshStandardNodeMaterial = new MeshStandardNodeMaterial({ color: 0x333333 });
         const groundMesh: Mesh = new Mesh(groundGeom, groundMat);
         scene.add(groundMesh);
     }
@@ -237,8 +237,7 @@ export class Demo {
             roughness: 0.1,
             metalness: 0.0,
         }
-        //const mat: MeshPhysicalNodeMaterial = new MeshPhysicalNodeMaterial(matParams);
-        const mat: MeshPhysicalMaterial = new MeshPhysicalMaterial(matParams);
+        const mat: MeshPhysicalNodeMaterial = new MeshPhysicalNodeMaterial(matParams);
         mat.envMapIntensity = 0.25;
 
         // evaluate the maximum vertex and index count of the geometries

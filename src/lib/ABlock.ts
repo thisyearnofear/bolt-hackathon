@@ -1,4 +1,4 @@
-import { Box2, Color, MathUtils } from "three/webgpu";
+import { Box2, Color } from "three/webgpu";
 
 
 
