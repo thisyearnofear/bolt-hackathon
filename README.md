@@ -21,6 +21,10 @@ npm install
 ```sh
 npm run dev
 ```
+or
+```sh
+npm run build
+```
 
 ## Code
 Check the Demo.ts file for the demo code
