@@ -191,16 +191,26 @@ a:focus-visible {
 	gap: 1rem;
 }
 
-.content {
+/* .content {
 	padding: var(--page-padding);
 	margin-top: 3rem;
 	display:block;
-	/* flex-direction: column; */
-	/* width: 100vw; */
 	position: fixed;
-	/* justify-content: flex-start;
-	align-content: flex-start;
-	align-items: flex-start; */
+} */
+
+.content {
+	padding: var(--page-padding);
+	display: flex;
+	flex-direction: column;
+	width: 100vw;
+	position: relative;
+}
+
+.demo__infos__container {
+	margin-top: 3rem;
+	display:block;
+	position: fixed;
+	z-index: 1000;
 }
 
 .demo__infos {

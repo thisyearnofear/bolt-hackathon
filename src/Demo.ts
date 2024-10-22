@@ -245,17 +245,30 @@ export class Demo {
         for (let i: number = 0; i < BlockGeometry.geoms.length; i++) {
             geoms.push(BlockGeometry.geoms[i]);
         }
-        let maxVCount: number = 0;
-        let maxICount: number = 0;
+
+        const vCounts: number[] = [];
+        const iCounts: number[] = [];
+        let totalV: number = 0;
+        let totalI: number = 0;
+        // get the vertex and index counts for each geometry
         for (let i: number = 0; i < geoms.length; i++) {
             const g: BufferGeometry = geoms[i];
-            maxVCount = Math.max(maxVCount, g.attributes.position.count);
-            maxICount = Math.max(maxICount, (g.index as BufferAttribute).count); // we're sure index is defined
+            vCounts.push(g.attributes.position.count);
+            iCounts.push((g.index as BufferAttribute).count);
+        }
+
+        // calculate the total vertex and index count
+        for( let i:number = 0 ;i< this.blocks.length; i++) {
+            totalV += vCounts[this.blocks[i].typeBottom];
+            totalV += vCounts[this.blocks[i].typeTop];
+            totalI += iCounts[this.blocks[i].typeBottom];
+            totalI += iCounts[this.blocks[i].typeTop];
         }
 
         // create the mesh
         const maxBlocks: number = this.blocks.length * 2; // top and bottom
-        this.blockMesh = new BatchedMesh(maxBlocks, 4 * maxVCount, 4 * maxICount, mat); // large approximation of the maximum size of the geometries
+        this.blockMesh = new BatchedMesh(maxBlocks, totalV, totalI, mat);
+        this.blockMesh.sortObjects = false; // depends on your use case, here I've had better performances without sorting
         this.blockMesh.position.x = -this.gridZone.max.x * 0.5;
         this.blockMesh.position.z = -this.gridZone.max.y * 0.5;
         this.scene.add(this.blockMesh);
@@ -397,7 +410,7 @@ export class Demo {
             // update the block mesh with matrices and colors
             // first the bottom, color changes on the first ripple
             dummy.rotation.y = block.rotation;
-            dummy.position.set(block.box.min.x + blockSize.x * .5, 0, block.box.min.y + blockSize.y * .5);
+            dummy.position.set(blockCenter.x, 0, blockCenter.y);
             dummy.scale.set(blockSize.x, block.height, blockSize.y);
             dummy.updateMatrix();
             blockMesh.setMatrixAt(baseI, dummy.matrix);

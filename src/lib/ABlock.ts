@@ -1,7 +1,10 @@
 import { Box2, Color } from "three/webgpu";
 
 
-
+/**
+ * ABlock class
+ * contains infos about a block, that is one top and one bottom mesh
+ */
 export class ABlock {
 
     static LIGHT_COLORS: Color[] = [
