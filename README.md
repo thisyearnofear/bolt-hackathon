@@ -1,9 +1,11 @@
-#  Three.js : BatchedMesh and Post processing with WebGPURenderer
-![BatchedMesh and Post processing](./assetsSrc/featured_image.jpg "BatchedMesh and Post processing")
+# Interactive 3D with Three.js BatchedMesh and WebGPURenderer
+
 This project is a simple demo that focuses on the recent `WebGPURenderer` from Three.js, as well as the use of the `BatchedMesh` object. It also features the use of some new version of the post-processing. The project is built using Vite and React.
 
+![BatchedMesh and Post processing](./assetsSrc/featured_image.jpg "BatchedMesh and Post processing")
+
 ## Demo 
-https://tympanus.net/codrops/XXXXXXX
+https://tympanus.net/Development/Batchedmesh
 
 ## Article
 https://tympanus.net/codrops/?p=81678

@@ -38,19 +38,15 @@ function App() {
 	return (
 		<>
 			<header className="frame">
-				<h1 className="frame__title">BatchedMesh & Post processing</h1>
+				<h1 className="frame__title">BatchedMesh & Post Processing by <a href="https://www.ulucode.com/" target="_blank">Christophe Choffel</a></h1>
 				<a className="frame__back" href="https://tympanus.net/codrops/?p=81678">Article</a>
 				<a className="frame__archive" href="https://tympanus.net/codrops/demos/">All demos</a>
 				<a className="frame__github" href="https://github.com/ULuIQ12/codrops-batchedmesh">GitHub</a>
-
 				<nav className="frame__tags">
-					<a href="https://tympanus.net/codrops/demos/?tag=#batchedmesh">#batchedmesh</a>
+					<a href="https://tympanus.net/codrops/demos/?tag=3d">#3d</a>
 					<a href="https://tympanus.net/codrops/demos/?tag=three-js">#three.js</a>
 					<a href="https://tympanus.net/codrops/demos/?tag=webgpu">#webgpu</a>
 				</nav>
-				<a className="frame__sub" href="https://tympanus.net/codrops/collective/">Subscribe to our frontend news</a>
-				<a className="frame__hire" href="mailto:contact@codrops.com">Hire us</a>
-
 			</header>
 
 			<div className="content">
