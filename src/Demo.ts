@@ -1,5 +1,6 @@
 
-import { Clock, PerspectiveCamera, Vector2, Scene, ACESFilmicToneMapping, Box2, MathUtils, BufferGeometry, PlaneGeometry, Mesh, Vector3, Color, EquirectangularReflectionMapping, BufferAttribute, BatchedMesh, Object3D, Plane, MeshStandardMaterial, MeshPhysicalMaterial, pass, PostProcessing, Renderer, fxaa, dof, ao, uniform, output, mrt, transformedNormalView, Raycaster, viewportUV, clamp, FloatType, MeshStandardNodeMaterial, MeshPhysicalNodeMaterial } from "three/webgpu";
+import { Clock, PerspectiveCamera, Vector2, Scene, ACESFilmicToneMapping, Box2, MathUtils, BufferGeometry, PlaneGeometry, Mesh, Vector3, Color, EquirectangularReflectionMapping, BufferAttribute, BatchedMesh, Object3D, Plane, MeshStandardMaterial, MeshPhysicalMaterial, pass, PostProcessing, Renderer, fxaa, dof, ao, uniform, output, mrt, transformedNormalView, Raycaster, viewportUV, clamp, FloatType, MeshStandardNodeMaterial, MeshPhysicalNodeMaterial, Vector4 } from "three/webgpu";
+import { generateMockContestants } from './lib/ContestantData';
 import { OrbitControls, UltraHDRLoader } from "three/examples/jsm/Addons.js";
 import WebGPU from "three/examples/jsm/capabilities/WebGPU.js";
 import { ABlock } from "./lib/ABlock";
@@ -32,6 +33,14 @@ export class Demo {
     }
 
     constructor(canvas: HTMLCanvasElement) {
+        this.canvas = canvas;
+        this.canvas.addEventListener('click', this.handlePointerClick.bind(this));
+
+        if (Demo.instance != null) {
+            console.warn("Demo instance already exists");
+            return null;
+        }
+        Demo.instance = this;
 
         this.canvas = canvas;
 
@@ -158,7 +167,12 @@ export class Demo {
 
     blocks: ABlock[] = [];
     gridZone: Box2 = new Box2(new Vector2(0, 0), new Vector2(148, 148));
+    selectedBlock?: ABlock;
+    onBlockClick?: (block: ABlock) => void;
+
     async initGrid() {
+        // Generate mock contestant data
+        const contestants = generateMockContestants(100);  // Adjust number as needed
         const zone: Box2 = this.gridZone;
         const maxBlockSize: Vector2 = new Vector2(5, 5);
         maxBlockSize.x = MathUtils.randInt(1, 5);
@@ -194,9 +208,16 @@ export class Demo {
                 // create a block entity with random paramaters
                 const block: ABlock = new ABlock();                
                 const isSquare: boolean = MathUtils.randFloat(0, 1) < squareChance;
-                block.typeTop = isSquare ? MathUtils.randInt(0, 5) : 0; // only plain rectangles can be ... rectangles
+                block.typeTop = isSquare ? MathUtils.randInt(0, 5) : 0;
                 block.typeBottom = BlockGeometry.topToBottom.get(block.typeTop)!;
-                block.setTopColorIndex(MathUtils.randInt(0, ABlock.LIGHT_COLORS.length - 1));
+                
+                // Assign contestant data if available
+                if (contestants[this.blocks.length]) {
+                    block.contestant = contestants[this.blocks.length];
+                    block.setTopColorIndex(block.contestant.colorIndex);
+                } else {
+                    block.setTopColorIndex(MathUtils.randInt(0, ABlock.LIGHT_COLORS.length - 1));
+                }
                 // define size and position
                 const sx: number = MathUtils.randInt(1, maxW);
                 const sy: number = isSquare ? sx : MathUtils.randInt(1, maxBlockSize.y);
@@ -336,6 +357,35 @@ export class Demo {
     blockCenter: Vector2 = new Vector2();
     heightNoise: FastSimplexNoise = new FastSimplexNoise({ frequency: 0.05, octaves: 2, min: 0, max: 1, persistence: 0.5 });
     wavesAmplitude: number = 8;
+    handlePointerClick(event: MouseEvent) {
+        if (!this.blockMesh || !this.camera) return;
+
+        const rect = this.canvas.getBoundingClientRect();
+        const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+        this.raycaster.setFromCamera(new Vector2(x, y), this.camera);
+        const intersects = this.raycaster.intersectObject(this.blockMesh);
+
+        if (intersects.length > 0) {
+            const instanceId = Math.floor(intersects[0].instanceId! / 2);
+            const block = this.blocks[instanceId];
+            
+            // Deselect previous block
+            if (this.selectedBlock && this.selectedBlock !== block) {
+                this.selectedBlock.isHighlighted = false;
+            }
+            
+            // Select new block
+            this.selectedBlock = block;
+            block.isHighlighted = true;
+            
+            if (this.onBlockClick) {
+                this.onBlockClick(block);
+            }
+        }
+    }
+
     updateBlocks(dt: number, elapsed: number) {
 
         const { camera, raycaster, dummy, blockMesh, blocks, pointerHandler, groundRayPlane, heightNoise, wavesAmplitude, gridZone, blockSize, blockCenter, tempCol, cubicPulse } = this;
@@ -388,7 +438,10 @@ export class Demo {
             cDist = Math.sqrt(dx * dx + dz * dz);
             cFactor = MathUtils.clamp(1 - cDist * 0.1, 0, 1);
             noise = heightNoise.scaled2D(block.box.min.x * .1, block.box.min.y + elapsed * 5);
-            targetHeight = noise * wavesAmplitude + 1 + cFactor * 5;
+            // Adjust height based on contestant progress if available
+            const progressBoost = block.contestant ? block.contestant.progress * 3 : 0;
+            const highlightBoost = block.isHighlighted ? 5 : 0;
+            targetHeight = noise * wavesAmplitude + 1 + cFactor * 5 + progressBoost + highlightBoost;
 
             if( transitionTime < 1 ) {
                 // calculate the ripple effect based on the distance from the center of the screen

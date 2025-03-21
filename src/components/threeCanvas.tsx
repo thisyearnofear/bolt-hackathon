@@ -1,7 +1,12 @@
 import { useEffect, useRef } from "react";
 import { Demo } from "../Demo";
+import { ABlock } from "../lib/ABlock";
 
-export default function ThreeCanvas() {
+interface ThreeCanvasProps {
+    onBlockClick?: (block: ABlock) => void;
+}
+
+export default function ThreeCanvas({ onBlockClick }: ThreeCanvasProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
@@ -14,6 +19,9 @@ export default function ThreeCanvas() {
             return;
         }
         const demo: Demo = new Demo(canvas);
+        if (onBlockClick) {
+            demo.onBlockClick = onBlockClick;
+        }
 
         (async () => {
             await demo.init();
