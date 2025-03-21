@@ -1,4 +1,4 @@
-import { Box2, Color } from "three/webgpu";
+import { Box2, Color, Vector3 } from "three/webgpu";
 import { ContestantData } from "./ContestantData";
 
 
@@ -33,10 +33,17 @@ export class ABlock {
     typeTop:number = 0;
     box:Box2 = new Box2();
     height:number = 1;
+    targetHeight:number = 1;
+    heightVelocity:number = 0;
     rotation:number = 0;
     topColorIndex:number = 0;
     contestant?: ContestantData;
     isHighlighted:boolean = false;
+
+    // Transform properties
+    position: Vector3 = new Vector3();
+    scale: Vector3 = new Vector3(1, 1, 1);
+    rotationVector: Vector3 = new Vector3();
 
     topColor:Color = ABlock.LIGHT_COLORS[ this.topColorIndex ];
     baseColor:Color = ABlock.LIGHT_BASE_COLOR;

@@ -48,9 +48,22 @@ function App() {
 					<span>📅 TBD</span>
 				</div>
 				<nav className="frame__tags">
-					<a href="#prizes">#prizes</a>
-					<a href="#sponsors">#sponsors</a>
-					<a href="#judges">#judges</a>
+					<a href="#" onClick={(e) => {
+						e.preventDefault();
+						Demo.instance?.setActiveCategory(null);
+					}}>#all</a>
+					<a href="#" onClick={(e) => {
+						e.preventDefault();
+						Demo.instance?.setActiveCategory('prize');
+					}}>#prizes</a>
+					<a href="#" onClick={(e) => {
+						e.preventDefault();
+						Demo.instance?.setActiveCategory('sponsor');
+					}}>#sponsors</a>
+					<a href="#" onClick={(e) => {
+						e.preventDefault();
+						Demo.instance?.setActiveCategory('judge');
+					}}>#judges</a>
 					<a href="http://hackathon.dev" target="_blank">#register</a>
 				</nav>
 			</header>

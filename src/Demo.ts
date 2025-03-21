@@ -1,6 +1,7 @@
 
 import { Clock, PerspectiveCamera, Vector2, Scene, ACESFilmicToneMapping, Box2, MathUtils, BufferGeometry, PlaneGeometry, Mesh, Vector3, Color, EquirectangularReflectionMapping, BufferAttribute, BatchedMesh, Object3D, Plane, MeshStandardMaterial, MeshPhysicalMaterial, pass, PostProcessing, Renderer, fxaa, dof, ao, uniform, output, mrt, transformedNormalView, Raycaster, viewportUV, clamp, FloatType, MeshStandardNodeMaterial, MeshPhysicalNodeMaterial, Vector4 } from "three/webgpu";
-import { generateMockContestants } from './lib/ContestantData';
+import { AIAgentBlock } from './lib/AIAgentBlock';
+import { generateMockContestants, ContestantCategory } from './lib/ContestantData';
 import { OrbitControls, UltraHDRLoader } from "three/examples/jsm/Addons.js";
 import WebGPU from "three/examples/jsm/capabilities/WebGPU.js";
 import { ABlock } from "./lib/ABlock";
@@ -20,6 +21,11 @@ export class Demo {
     scene: Scene = new Scene();
     pointerHandler?: Pointer;
     clock: Clock = new Clock(false);
+    private agentBlocks: Map<number, AIAgentBlock> = new Map();
+    private activeAgent: AIAgentBlock | null = null;
+    private raycaster: Raycaster = new Raycaster();
+    private activeCategory: ContestantCategory | null = null;
+    private animationsFrozen: boolean = false;
 
 
     /**
@@ -158,7 +164,7 @@ export class Demo {
         scene.background = texture;
         scene.environment = texture;
 
-        const groundGeom: BufferGeometry = new PlaneGeometry(148, 148, 1, 1);
+        const groundGeom: BufferGeometry = new PlaneGeometry(50, 50, 1, 1);  // Match grid size
         groundGeom.rotateX(-Math.PI * 0.5);
         const groundMat: MeshStandardNodeMaterial = new MeshStandardNodeMaterial({ color: 0x333333 });
         const groundMesh: Mesh = new Mesh(groundGeom, groundMat);
@@ -166,13 +172,13 @@ export class Demo {
     }
 
     blocks: ABlock[] = [];
-    gridZone: Box2 = new Box2(new Vector2(0, 0), new Vector2(148, 148));
+    gridZone: Box2 = new Box2(new Vector2(0, 0), new Vector2(50, 50));  // Reduced grid size for better layout
     selectedBlock?: ABlock;
     onBlockClick?: (block: ABlock) => void;
 
     async initGrid() {
-        // Generate mock contestant data
-        const contestants = generateMockContestants(100);  // Adjust number as needed
+        // Generate mock contestant data with fewer blocks for better performance
+        const contestants = generateMockContestants(20);  // Reduced from 100 to 20
         const zone: Box2 = this.gridZone;
         const maxBlockSize: Vector2 = new Vector2(5, 5);
         maxBlockSize.x = MathUtils.randInt(1, 5);
@@ -211,10 +217,11 @@ export class Demo {
                 block.typeTop = isSquare ? MathUtils.randInt(0, 5) : 0;
                 block.typeBottom = BlockGeometry.topToBottom.get(block.typeTop)!;
                 
-                // Assign contestant data if available
-                if (contestants[this.blocks.length]) {
-                    block.contestant = contestants[this.blocks.length];
-                    block.setTopColorIndex(block.contestant.colorIndex);
+                // Find an unassigned contestant of any category
+                const contestant = contestants.find(c => !this.blocks.some(b => b.contestant?.id === c.id));
+                if (contestant) {
+                    block.contestant = contestant;
+                    block.setTopColorIndex(contestant.colorIndex);
                 } else {
                     block.setTopColorIndex(MathUtils.randInt(0, ABlock.LIGHT_COLORS.length - 1));
                 }
@@ -357,6 +364,40 @@ export class Demo {
     blockCenter: Vector2 = new Vector2();
     heightNoise: FastSimplexNoise = new FastSimplexNoise({ frequency: 0.05, octaves: 2, min: 0, max: 1, persistence: 0.5 });
     wavesAmplitude: number = 8;
+    setActiveCategory(category: ContestantCategory | null) {
+        // Return all active agents
+        if (this.activeAgent) {
+            this.activeAgent.return();
+            this.activeAgent = null;
+        }
+
+        // Set category and animation state
+        this.activeCategory = category;
+        this.animationsFrozen = category !== null;
+
+        // Reset all highlighted blocks
+        if (this.selectedBlock) {
+            this.selectedBlock.isHighlighted = false;
+            this.selectedBlock = undefined;
+        }
+
+        // Reset all blocks to base height first
+        this.blocks.forEach(block => {
+            block.height = 1.0;
+            block.heightVelocity = 0;
+        });
+
+        // Then set target heights based on category
+        if (category) {
+            this.blocks.forEach(block => {
+                if (block.contestant?.category !== category) {
+                    block.height = 0.2;
+                    block.targetHeight = 0.2;
+                }
+            });
+        }
+    }
+
     handlePointerClick(event: MouseEvent) {
         if (!this.blockMesh || !this.camera) return;
 
@@ -371,25 +412,45 @@ export class Demo {
             const instanceId = Math.floor(intersects[0].instanceId! / 2);
             const block = this.blocks[instanceId];
             
-            // Deselect previous block
-            if (this.selectedBlock && this.selectedBlock !== block) {
-                this.selectedBlock.isHighlighted = false;
-            }
-            
-            // Select new block
-            this.selectedBlock = block;
-            block.isHighlighted = true;
-            
-            if (this.onBlockClick) {
-                this.onBlockClick(block);
+            // Only interact with blocks of the active category
+            if (!this.activeCategory || block.contestant?.category === this.activeCategory) {
+                // Deselect previous block
+                if (this.selectedBlock && this.selectedBlock !== block) {
+                    this.selectedBlock.isHighlighted = false;
+                }
+                
+                // Select new block
+                this.selectedBlock = block;
+                block.isHighlighted = true;
+                
+                // Create or update agent block
+                if (this.activeAgent) {
+                    this.activeAgent.return();
+                }
+                
+                let agentBlock = this.agentBlocks.get(block.id);
+                if (!agentBlock) {
+                    agentBlock = new AIAgentBlock(block);
+                    this.agentBlocks.set(block.id, agentBlock);
+                }
+                agentBlock.emerge();
+                this.activeAgent = agentBlock;
+                
+                if (this.onBlockClick) {
+                    this.onBlockClick(block);
+                }
             }
         }
     }
 
     updateBlocks(dt: number, elapsed: number) {
-
         const { camera, raycaster, dummy, blockMesh, blocks, pointerHandler, groundRayPlane, heightNoise, wavesAmplitude, gridZone, blockSize, blockCenter, tempCol, cubicPulse } = this;
         if (blockMesh == null) return;
+
+        // Skip wave animations if frozen
+        if (this.animationsFrozen) {
+            return;
+        }
 
         // calculate the transition time
         const transitionTime: number = MathUtils.clamp((elapsed - this.themeTransitionStart) / this.themeTransitionDuration, 0, 1);
@@ -484,7 +545,7 @@ export class Demo {
 
     }
 
-    raycaster: Raycaster = new Raycaster();
+
     groundRayPlane: Plane = new Plane(new Vector3(0, 1, 0), 0);
     camDist: number = 50;
     camdistVel: number = 0.0;
