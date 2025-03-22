@@ -139,7 +139,19 @@ async function main() {
     )
       .toString()
       .trim();
-    console.log("✅ Delegation proof created successfully");
+
+    // Save the proof to a JSON file
+    const proofPath = path.join(
+      process.cwd(),
+      "config",
+      "storacha",
+      "delegation-proof.json"
+    );
+    fs.mkdirSync(path.dirname(proofPath), { recursive: true });
+    fs.writeFileSync(proofPath, proof);
+    console.log(
+      "✅ Delegation proof saved to config/storacha/delegation-proof.json"
+    );
   } catch (error) {
     console.error("Error creating delegation proof:", error.message);
     process.exit(1);
@@ -176,13 +188,13 @@ async function main() {
       envContent += `\nSTORACHA_PRIVATE_KEY=${keyObj.key}`;
     }
 
-    if (envContent.includes("STORACHA_PROOF=")) {
+    if (envContent.includes("STORACHA_PROOF_PATH=")) {
       envContent = envContent.replace(
-        /STORACHA_PROOF=.*/g,
-        `STORACHA_PROOF=${proof}`
+        /STORACHA_PROOF_PATH=.*/g,
+        `STORACHA_PROOF_PATH=config/storacha/delegation-proof.json`
       );
     } else {
-      envContent += `\nSTORACHA_PROOF=${proof}`;
+      envContent += `\nSTORACHA_PROOF_PATH=config/storacha/delegation-proof.json`;
     }
 
     // Write the updated content back to the file
@@ -195,7 +207,7 @@ async function main() {
     );
     console.log(`STORACHA_SPACE_DID=${spaceDID}`);
     console.log(`STORACHA_PRIVATE_KEY=${JSON.parse(keyData).key}`);
-    console.log(`STORACHA_PROOF=${proof}`);
+    console.log(`STORACHA_PROOF_PATH=config/storacha/delegation-proof.json`);
   }
 
   // Test the setup
@@ -242,7 +254,9 @@ async function main() {
   console.log("3. Add the following environment variables:");
   console.log(`   - STORACHA_SPACE_DID: ${spaceDID}`);
   console.log("   - STORACHA_PRIVATE_KEY: (The private key from step 2)");
-  console.log("   - STORACHA_PROOF: (The delegation proof from step 3)");
+  console.log(
+    "   - STORACHA_PROOF_PATH: (The delegation proof path from step 4)"
+  );
 
   console.log(
     "\nYou should now restart your Netlify dev server to apply these changes."

@@ -1,22 +1,18 @@
 import { Handler } from "@netlify/functions";
 
 /**
- * Check environment variables related to Storacha
- * This helps diagnose environment variable issues in production without exposing sensitive values
+ * Netlify function to check if Storacha environment variables are configured
+ * This doesn't expose the actual keys, just reports if they exist
  */
-export const handler: Handler = async (event, context) => {
-  // Set CORS headers
+const handler: Handler = async (event, context) => {
+  // CORS headers for local development
   const headers = {
-    "Access-Control-Allow-Origin":
-      process.env.NODE_ENV === "production"
-        ? process.env.PRODUCTION_URL || "https://hackathon-bolt.netlify.app"
-        : "*",
+    "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Content-Type": "application/json",
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
   };
 
-  // Handle OPTIONS requests
+  // Handle OPTIONS requests (CORS preflight)
   if (event.httpMethod === "OPTIONS") {
     return {
       statusCode: 204,
@@ -26,40 +22,53 @@ export const handler: Handler = async (event, context) => {
   }
 
   try {
-    // Check for environment variables without exposing their values
-    const result = {
-      environment: process.env.NODE_ENV || "unset",
-      STORACHA_SPACE_DID_present: !!process.env.STORACHA_SPACE_DID,
-      STORACHA_PRIVATE_KEY_present: !!process.env.STORACHA_PRIVATE_KEY,
-      STORACHA_PROOF_present: !!process.env.STORACHA_PROOF,
-      PRODUCTION_URL_present: !!process.env.PRODUCTION_URL,
-      CONTENT_MAPPINGS_present: !!process.env.CONTENT_MAPPINGS,
-      CORS_origin: headers["Access-Control-Allow-Origin"],
-      timestamp: new Date().toISOString(),
-      // Add limited value info for debugging (first few chars only)
-      PRODUCTION_URL_value: process.env.PRODUCTION_URL
-        ? process.env.PRODUCTION_URL.substring(0, 30) +
-          (process.env.PRODUCTION_URL.length > 30 ? "..." : "")
-        : null,
-      STORACHA_SPACE_DID_prefix: process.env.STORACHA_SPACE_DID
-        ? process.env.STORACHA_SPACE_DID.substring(0, 15) + "..."
-        : null,
-    };
+    // Check for Storacha environment variables
+    const privateKeyConfigured = !!process.env.STORACHA_PRIVATE_KEY;
+    const proofConfigured = !!process.env.STORACHA_PROOF;
+    const spaceDidConfigured = !!process.env.STORACHA_SPACE_DID;
+
+    // Provide more detailed information without revealing sensitive data
+    const privateKeyInfo = privateKeyConfigured
+      ? `${process.env.STORACHA_PRIVATE_KEY?.substring(0, 6)}...`
+      : "Not configured";
+
+    const spaceDidInfo = spaceDidConfigured
+      ? process.env.STORACHA_SPACE_DID
+      : "Not configured";
+
+    const proofInfo = proofConfigured
+      ? `${process.env.STORACHA_PROOF?.substring(0, 10)}...`
+      : "Not configured";
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify(result),
+      body: JSON.stringify({
+        privateKeyConfigured,
+        proofConfigured,
+        spaceDidConfigured,
+        // If all are configured, then private mode is fully configured
+        privateConfigComplete:
+          privateKeyConfigured && proofConfigured && spaceDidConfigured,
+        // Additional info for UI display
+        configInfo: {
+          privateKeyInfo,
+          spaceDidInfo,
+          proofInfo,
+          mode: privateKeyConfigured && proofConfigured ? "private" : "public",
+          setupComplete:
+            privateKeyConfigured && proofConfigured && spaceDidConfigured,
+        },
+      }),
     };
-  } catch (error: any) {
-    console.error("Error checking environment:", error);
+  } catch (error) {
+    console.error("Error checking environment variables:", error);
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({
-        error: "Failed to check environment variables",
-        message: error.message,
-      }),
+      body: JSON.stringify({ error: "Failed to check environment variables" }),
     };
   }
 };
+
+export { handler };

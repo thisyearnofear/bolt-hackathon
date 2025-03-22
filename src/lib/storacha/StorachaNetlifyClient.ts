@@ -7,9 +7,8 @@ import { StorachaAgentData } from "./StorachaClient";
 export interface StorachaTestResult {
   success: boolean;
   error?: string;
-  mode?: "public" | "private" | "development";
+  mode?: "public" | "private";
   details?: any;
-  developmentMode?: boolean;
 }
 
 // Define a type for our CID mapping
@@ -36,81 +35,12 @@ export class StorachaNetlifyClient {
 
   // Get the appropriate API URL based on environment
   private static getApiUrl(): string {
-    // Check for explicit URL from environment variable if available
-    if (typeof window !== "undefined" && (window as any).STORACHA_API_URL) {
-      return (window as any).STORACHA_API_URL;
-    }
-
-    // In development, try localhost with fallbacks
+    // In development, use the Netlify functions server directly
     if (process.env.NODE_ENV === "development") {
-      // First try standard development port
-      const devUrl = "http://localhost:8888/.netlify/functions/storacha-client";
-
-      // For development, also set a global flag to indicate we should bypass CSP checks
-      if (typeof window !== "undefined") {
-        // Add DEV_MODE property to window
-        (window as any).DEV_MODE = true;
-      }
-
-      return devUrl;
+      return "http://localhost:8888/.netlify/functions/storacha-client";
     }
-
     // In production, use the API path that gets redirected to functions
     return "/api/storacha-client";
-  }
-
-  // Get a direct URL to IPFS content - used as fallback
-  private static getIpfsGatewayUrl(cid: string): string[] {
-    // Return multiple gateway options for fallback
-    return [
-      `https://w3s.link/ipfs/${cid}`,
-      `https://ipfs.io/ipfs/${cid}`,
-      `https://${cid}.ipfs.dweb.link`,
-      `https://${cid}.ipfs.cf-ipfs.com`,
-    ];
-  }
-
-  // Try fetching with fetch API but handle CSP errors in development
-  private static async safeFetch(
-    url: string,
-    options: RequestInit
-  ): Promise<Response> {
-    try {
-      return await fetch(url, options);
-    } catch (error: any) {
-      // Check if this is a CSP error and we're in development
-      if (
-        error.message?.includes("Content Security Policy") &&
-        process.env.NODE_ENV === "development" &&
-        typeof window !== "undefined"
-      ) {
-        console.warn(
-          "CSP error in development mode. Adding a note to check console and CSP settings."
-        );
-        // Return a mock response with help for development mode
-        const mockResponse = new Response(
-          JSON.stringify({
-            success: false,
-            error: "CSP Error in Development",
-            developmentHelp: `
-Content Security Policy is blocking requests to ${url}.
-In development mode, you may need to:
-1. Add http://localhost:* to your CSP connect-src
-2. Run netlify dev with --no-open flag
-3. Check browser console for specific CSP errors
-            `,
-            url,
-          }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }
-        );
-        return mockResponse;
-      }
-      // Otherwise rethrow
-      throw error;
-    }
   }
 
   /**
@@ -423,23 +353,20 @@ In development mode, you may need to:
 
       // Try to download via Netlify function
       try {
-        // Call Netlify function to download using safeFetch
-        const response = await StorachaNetlifyClient.safeFetch(
-          StorachaNetlifyClient.getApiUrl(),
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
+        // Call Netlify function to download
+        const response = await fetch(StorachaNetlifyClient.getApiUrl(), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            action: "download",
+            data: {
+              spaceDid: this.spaceDid,
+              cid: resolvedCid,
             },
-            body: JSON.stringify({
-              action: "download",
-              data: {
-                spaceDid: this.spaceDid,
-                cid: resolvedCid,
-              },
-            }),
-          }
-        );
+          }),
+        });
 
         if (!response.ok) {
           if (response.status === 500) {
@@ -472,22 +399,6 @@ In development mode, you may need to:
             `StorachaNetlifyClient: Download error from server:`,
             result.error
           );
-
-          // Check if this is a development help message
-          if (result.developmentHelp) {
-            console.info("Development help:", result.developmentHelp);
-
-            // Return mock data in development mode for better experience
-            if (process.env.NODE_ENV === "development") {
-              return {
-                isMockData: true,
-                message:
-                  "Using mock data due to CSP restrictions in development",
-                cid: resolvedCid,
-              };
-            }
-          }
-
           throw new Error(result.error || "Unknown error during download");
         }
       } catch (error) {
@@ -672,11 +583,14 @@ In development mode, you may need to:
    */
   async testConnection(): Promise<StorachaTestResult> {
     try {
-      // Get the Netlify function URL
-      const netlifyUrl = StorachaNetlifyClient.getApiUrl();
+      // First check if Netlify Function is available
+      const netlifyUrl =
+        process.env.NODE_ENV === "development"
+          ? "http://localhost:8888/.netlify/functions/storacha-client"
+          : "/api/storacha-client";
 
       // Test connection by checking if function responds to ping
-      const response = await StorachaNetlifyClient.safeFetch(netlifyUrl, {
+      const response = await fetch(netlifyUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -698,27 +612,6 @@ In development mode, you may need to:
 
       const result = await response.json();
 
-      // Development mode helper - if we see a developmentHelp field, this is a CSP error being handled
-      if (result.developmentHelp) {
-        console.info("Development help:", result.developmentHelp);
-
-        // For development, return a mock success so the app can function
-        if (process.env.NODE_ENV === "development") {
-          console.log(
-            "Running in development mode - using mock connection data"
-          );
-          return {
-            success: true,
-            mode: "development" as "development",
-            developmentMode: true,
-            details: {
-              mockData: true,
-              message: "Using mock data due to CSP restrictions in development",
-            },
-          };
-        }
-      }
-
       if (result.success) {
         return {
           success: true,
@@ -733,24 +626,6 @@ In development mode, you may need to:
       }
     } catch (error: any) {
       console.error("Error during Storacha connection test:", error);
-
-      // If we're in development, provide a mock success
-      if (process.env.NODE_ENV === "development") {
-        console.log(
-          "Connection test failed but returning mock success for development"
-        );
-        return {
-          success: true,
-          mode: "development" as "development",
-          developmentMode: true,
-          details: {
-            mockData: true,
-            error: error.message,
-            message: "Using mock data due to error in development",
-          },
-        };
-      }
-
       return {
         success: false,
         error: error.message || "Failed to connect to Storacha",

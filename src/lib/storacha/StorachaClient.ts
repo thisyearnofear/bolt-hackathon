@@ -43,12 +43,28 @@ export class StorachaClient {
     }
 
     try {
-      // Create the actual web3.storage client
-      this.client = await create();
+      // Create the actual web3.storage client with retries
+      let retryCount = 0;
+      const maxRetries = 3;
+
+      while (retryCount < maxRetries) {
+        try {
+          this.client = await create();
+          break;
+        } catch (error) {
+          retryCount++;
+          if (retryCount === maxRetries) {
+            throw error;
+          }
+          await new Promise((resolve) =>
+            setTimeout(resolve, 1000 * retryCount)
+          );
+        }
+      }
 
       try {
         // Try to set the current space using the provided spaceDid
-        if (this.spaceDid) {
+        if (this.spaceDid && this.client) {
           const spaces = await this.client.spaces();
           const space = spaces.find((s) => s.did() === this.spaceDid);
 
@@ -56,8 +72,6 @@ export class StorachaClient {
             await this.client.setCurrentSpace(space.did());
             console.log("Connected to existing Storacha space:", this.spaceDid);
           } else {
-            // If the space doesn't exist in the client, we need to add it
-            // For now, we'll just log this - in production, we'd handle delegation
             console.log(
               "Space not found in client. Need proper delegation to access."
             );
@@ -295,5 +309,47 @@ export class StorachaClient {
         response: "Judges will evaluate based on...",
       },
     ].filter((item) => item.agentId !== excludeAgentId);
+  }
+
+  /**
+   * Get the current space DID
+   */
+  getSpaceDid(): string {
+    return this.spaceDid;
+  }
+
+  /**
+   * Check if the client is initialized
+   */
+  isConnected(): boolean {
+    return this.initialized && this.client !== null;
+  }
+
+  /**
+   * Test the connection to Storacha
+   */
+  async testConnection(): Promise<{ success: boolean; error?: string }> {
+    try {
+      if (!this.client) {
+        await this.initialize();
+      }
+
+      if (!this.client) {
+        return {
+          success: false,
+          error: "Failed to initialize client",
+        };
+      }
+
+      // Try to list spaces as a connection test
+      await this.client.spaces();
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
   }
 }

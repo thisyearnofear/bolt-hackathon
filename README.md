@@ -1,4 +1,4 @@
-# Hackathon.AI - Interactive 3D Hackathon Platform with Multi-Agent RAG System
+# Interactive 3D Hackathon Platform with Multi-Agent RAG System
 
 This project serves as a template for hackathon organizers to quickly deploy an immersive, agent-enabled hackathon landing page. Built with React, Three.js WebGPU, and LlamaIndex.TS, it provides a 3D visualization of hackathon participants, sponsors, prizes, and judges, with specialized AI agents to assist participants throughout their journey.
 
@@ -155,30 +155,27 @@ This project is licensed under the MIT License.
 
 Hackathon Bolt uses Storacha (web3.storage) for decentralized storage. For production use, you need to set up a proper Storacha space and credentials:
 
+### Important Notes About Data Persistence
+
+- **Public Data** 🌎: All data uploaded to Storacha is available to anyone who requests it using the correct CID. Do not store any private or sensitive information in an unencrypted form.
+
+- **Permanent Data** ♾️: Data uploaded to Storacha is designed to be permanent. Even after "removing" files:
+
+  - Data may persist on the IPFS network indefinitely
+  - Storacha retains data for a minimum of 30 days
+  - Other nodes may keep copies of the data
+  - Do not use for data that needs permanent deletion
+
+- **Content Management**:
+  - You can remove content CIDs from your account listing
+  - Optionally remove associated storage shards
+  - This only affects visibility in your account, not data availability
+  - There's a minimum 30-day retention period
+
 ### Automated Setup
 
 We've provided an automated setup script that will guide you through the process:
 
-```bash
-npm run setup-storacha
 ```
 
-This script will:
-
-1. Check/install the w3cli tool
-2. Help you create or use an existing Storacha space
-3. Generate proper credentials
-4. Configure your environment variables
-5. Test the setup with a sample upload
-
-### Manual Setup
-
-If you prefer to manually set up Storacha, please refer to the [STORACHA_SETUP.md](./STORACHA_SETUP.md) file for detailed instructions.
-
-### Important Notes
-
-- Never commit your private keys or proofs to version control
-- For production, add the environment variables to your Netlify settings
-- Always test your storage setup before deploying to production
-
-For more details, run the setup script or refer to the setup guide.
+```

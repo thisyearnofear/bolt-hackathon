@@ -13,43 +13,52 @@
 [functions]
   # Increase function timeout for Storacha operations
   node_bundler = "esbuild"
-  external_node_modules = ["@web3-storage/w3up-client"]
+  external_node_modules = [
+    "@web3-storage/w3up-client",
+    "@ipld/car",
+    "@ucanto/core",
+    "@ipld/dag-ucan"
+  ]
   included_files = ["netlify/functions/**/*"]
 
-# Redirect API requests to functions
+[functions.storacha-client]
+  # Set appropriate timeouts for Storacha operations
+  timeout = 30
+  # Enable ESM
+  format = "esm"
+
+[build.environment]
+  # Ensure proper Node version
+  NODE_VERSION = "18"
+  # Force HTTPS in production
+  FORCE_HTTPS = "true"
+  # Enable ESM
+  NETLIFY_EXPERIMENTAL_BUILD_ESM_ALL = "true"
+
+# Redirect API requests to functions with proper handling
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
-  force = true # Force HTTPS and handle cleanly in production
+  force = true # Force HTTPS
 
-# Handle CORS for function endpoints specifically for production
+# Handle CORS for function endpoints
 [[headers]]
   for = "/.netlify/functions/*"
   [headers.values]
-    Access-Control-Allow-Origin = "*"  # Will be restricted to your domain in production by the function code
-    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type, Authorization"
+    Access-Control-Allow-Origin = "*"  # For development, in production change to your domain
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept, Authorization"
     Access-Control-Max-Age = "86400"
 
-# Special CSP configuration for development
-[context.development.environment]
-  CSP_DEVELOPMENT = "true"
-
-[context.development.headers]
-  for = "/*"
-  [context.development.headers.values]
-    Content-Security-Policy = "default-src 'self'; connect-src 'self' http://localhost:* http://127.0.0.1:* https://api.openai.com https://generativelanguage.googleapis.com https://*.netlify.app https://w3s.link https://*.ipfs.dweb.link https://ipfs.io https://*.infura-ipfs.io wss://*.bridge.walletconnect.org; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; media-src 'self' https: blob:; worker-src 'self' blob:;"
-
-# For production, keep original security headers but update the connect-src to include additional services
+# Security headers for production
 [[headers]]
   for = "/*"
   [headers.values]
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
-    Content-Security-Policy = "default-src 'self'; connect-src 'self' https://api.openai.com https://generativelanguage.googleapis.com https://*.netlify.app https://w3s.link https://*.ipfs.dweb.link https://ipfs.io https://*.infura-ipfs.io wss://*.bridge.walletconnect.org; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; media-src 'self' https: blob:; worker-src 'self' blob:;"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
 
 # Redirect for SPA - keep this last
 [[redirects]]

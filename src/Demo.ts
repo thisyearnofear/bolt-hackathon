@@ -222,10 +222,8 @@ export class Demo {
     }
 
     if (!WebGPU.isAvailable()) {
-      console.error("WebGPU is not supported in this browser");
-      document.body.classList.remove("loading");
-      document.body.classList.add("webgpu-error");
-      return Promise.reject(new Error("WebGPU not available"));
+      console.warn("WebGPU is not supported in this browser");
+      return false;
     }
 
     // Clean up existing renderer if it exists
@@ -245,12 +243,11 @@ export class Demo {
     this.addCanvasListeners();
 
     try {
-      console.log("Initializing WebGPU renderer...");
       this.renderer = new WebGPURenderer({
         canvas: this.canvas,
         antialias: true,
       });
-      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // Limit pixel ratio for better performance
+      this.renderer.setPixelRatio(1);
       this.renderer.setSize(window.innerWidth, window.innerHeight);
       this.renderer.toneMapping = ACESFilmicToneMapping;
       this.renderer.toneMappingExposure = 0.9;
@@ -267,28 +264,19 @@ export class Demo {
         new Plane(new Vector3(0, 1, 0), 0)
       );
 
-      console.log("Loading geometries and environment...");
       await BlockGeometry.init();
       await this.initEnvironment();
       await this.initGrid();
       await this.initBlocks();
-
-      console.log("WebGPU initialization complete");
-      document.body.classList.remove("loading");
 
       this.clock.start();
       this.renderer.setAnimationLoop(this.animate.bind(this));
 
       return true;
     } catch (error) {
-      console.error("Fatal error initializing Demo:", error);
-      document.body.classList.remove("loading");
-      document.body.classList.add("webgpu-error");
-
-      // Cleanup any partial initialization
+      console.error("Error initializing Demo:", error);
       this.dispose();
-
-      return Promise.reject(error);
+      return false;
     }
   }
 
