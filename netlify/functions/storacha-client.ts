@@ -7,17 +7,19 @@ import { Signer } from "@web3-storage/w3up-client/principal/ed25519";
 /**
  * Main handler for the Storacha client Netlify function
  */
-const handler: Handler = async (event, context) => {
-  // CORS headers for local development
-  const headers = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+export const handler: Handler = async (event, context) => {
+  // Set default CORS headers for all responses
+  const headers: Record<string, string> = {
+    "Access-Control-Allow-Origin":
+      process.env.NODE_ENV === "production"
+        ? "https://hackathon-bolt.netlify.app"
+        : "*",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Content-Type": "application/json",
   };
 
-  console.log(`Received ${event.httpMethod} request for ${event.path}`);
-
-  // Handle OPTIONS requests (CORS preflight)
+  // Handle preflight OPTIONS request
   if (event.httpMethod === "OPTIONS") {
     return {
       statusCode: 204,
@@ -26,95 +28,109 @@ const handler: Handler = async (event, context) => {
     };
   }
 
-  if (!event.body) {
-    console.error("Request received without body");
+  // Health check endpoint for uptime monitoring and debugging
+  if (
+    event.path.includes("/health") ||
+    (event.body && JSON.parse(event.body).action === "health")
+  ) {
+    console.log("Health check requested");
     return {
-      statusCode: 400,
+      statusCode: 200,
       headers,
-      body: JSON.stringify({ success: false, error: "No request body" }),
+      body: JSON.stringify({
+        status: "ok",
+        uptime: process.uptime(),
+        timestamp: Date.now(),
+        environment: process.env.NODE_ENV || "development",
+        storachaConfigured: !!process.env.STORACHA_SPACE_DID,
+      }),
     };
   }
 
   try {
-    const request = JSON.parse(event.body);
-    const { action, data } = request;
+    // Get the action and data from the request
+    const { action, data } = JSON.parse(event.body || "{}");
 
-    console.log(
-      `Processing action: ${action} with data:`,
-      JSON.stringify({
-        ...data,
-        content: data?.content ? "[CONTENT_TRUNCATED]" : undefined,
-      })
-    );
+    // Ensure required fields are present
+    if (!action) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: "Missing action",
+        }),
+      };
+    }
 
-    // Log environment variables (without revealing full values)
-    console.log("Environment check:", {
-      STORACHA_SPACE_DID_present: !!process.env.STORACHA_SPACE_DID,
-      STORACHA_PRIVATE_KEY_present: !!process.env.STORACHA_PRIVATE_KEY,
-      STORACHA_PROOF_present: !!process.env.STORACHA_PROOF,
-      spaceDidFromRequest: data?.spaceDid
-        ? data.spaceDid.substring(0, 15) + "..."
-        : undefined,
-      NODE_ENV: process.env.NODE_ENV,
-    });
-
-    // Initialize client based on mode - now with better error handling
-    let client;
+    // Get the initialized client
+    let client: Client.Client | null = null;
     try {
       client = await initializeStorachaClient(data?.spaceDid);
       if (!client) {
         throw new Error("Failed to initialize Storacha client");
       }
-    } catch (initError: any) {
-      console.error("Client initialization error:", initError);
+    } catch (error: any) {
+      console.error("Error initializing client:", error);
+      // For ping and connection testing, we still want to return a response even if client init fails
+      if (action === "ping" || action === "test-connection") {
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            error: error.message || "Failed to initialize client",
+            details: "Connection test completed but failed",
+            errorCode: "CLIENT_INIT_FAILED",
+          }),
+        };
+      }
+
+      // For other actions, return an error
       return {
         statusCode: 500,
         headers,
         body: JSON.stringify({
           success: false,
-          error: `Client initialization failed: ${initError.message}`,
-          trace: initError.stack,
+          error: error.message || "Failed to initialize client",
         }),
       };
     }
 
-    // Process the requested action
+    // Call the appropriate handler based on the action
     switch (action) {
-      case "ping":
-        return handlePing(headers, client, data?.spaceDid);
       case "upload":
-        return handleUpload(headers, client, data);
+        return await handleUpload(headers, client, data);
       case "download":
-        return handleDownload(headers, client, data);
+        return await handleDownload(headers, client, data);
       case "list":
-        return handleList(headers, client, data);
-      case "delete":
-        return handleDelete(headers, client, data);
-      case "get-mappings":
-        return handleGetMappings(headers, client, data);
+        return await handleList(headers, client, data);
+      case "test-connection":
+        return await handleTestConnection(headers, client, data);
+      case "ping":
+        return await handlePing(headers, client, data);
       case "refresh-mappings":
-        return handleRefreshMappings(headers, client, data);
+        return await handleRefreshMappings(headers, client, data);
+      case "get-mappings":
+        return await handleGetMappings(headers, client, data);
       default:
-        console.error(`Invalid action requested: ${action}`);
         return {
           statusCode: 400,
           headers,
           body: JSON.stringify({
             success: false,
-            error: `Invalid action: ${action}`,
+            error: `Unknown action: ${action}`,
           }),
         };
     }
   } catch (error: any) {
-    console.error("Error processing request:", error);
-    console.error("Stack trace:", error.stack);
+    console.error("Error handling request:", error);
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({
         success: false,
-        error: error.message || "An unknown error occurred",
-        stack: error.stack,
+        error: error.message || "Unknown error",
       }),
     };
   }
@@ -1171,4 +1187,55 @@ async function handleRefreshMappings(
   }
 }
 
-export { handler };
+// Add a dedicated connection test handler
+async function handleTestConnection(
+  headers: Record<string, string>,
+  client: Client.Client | null,
+  data: any
+): Promise<{
+  statusCode: number;
+  headers: Record<string, string>;
+  body: string;
+}> {
+  // If we've gotten this far, the client was successfully initialized
+  if (!client) {
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        success: false,
+        error: "Client connection failed",
+      }),
+    };
+  }
+
+  try {
+    // Check if we can access a space
+    const spaceInfo = {
+      spaceDid: client.currentSpace()?.did(),
+      agentDid: client.agent?.did(),
+    };
+
+    console.log("Connection test successful:", spaceInfo);
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        success: true,
+        message: "Connection to Storacha established successfully",
+        spaceInfo,
+      }),
+    };
+  } catch (error: any) {
+    console.error("Connection test error:", error);
+    return {
+      statusCode: 200, // Still return 200 since the test completed
+      headers,
+      body: JSON.stringify({
+        success: false,
+        error: error.message || "Unknown error during connection test",
+      }),
+    };
+  }
+}

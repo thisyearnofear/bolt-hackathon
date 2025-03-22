@@ -15,188 +15,91 @@ This project serves as a template for hackathon organizers to quickly deploy an 
 - **Project Submission**: Project submission form with GitHub integration
 - **Netlify Serverless Functions**: Secure API key storage and server-side operations
 - **Admin Dashboard**: Dedicated interface for organizers to manage the hackathon
+- **Production Security**: Comprehensive security headers and CORS configuration
+- **Content Mapping System**: Efficient CID resolution and caching system
 
 ## Latest Updates
 
-- **✅ Admin Dashboard**: Added a comprehensive admin interface for hackathon organizers
-- **✅ Knowledge Base Manager**: Implemented a tool for managing RAG knowledge sources for agents
-- **✅ Contestant Registration System**: Added a comprehensive registration form for hackathon participants
-- **✅ Project Submission Flow**: Implemented a project submission form with validation and storage
-- **✅ Serverless Functions**: Added Netlify functions to securely handle Storacha operations
-- **✅ Improved UI/UX**: Enhanced modal system and responsive layout
-- **✅ Storacha Integration**: Connected front-end with serverless backend for secure storage operations
-- **✅ Usage Statistics**: Added real-time Storacha usage tracking
+- **✅ Production Security**: Added comprehensive security headers and CORS configuration
+- **✅ Serverless Functions**: Production-ready Netlify functions with proper bundling
+- **✅ Content Mapping**: Optimized content refresh system with 5-minute cache
+- **✅ Error Handling**: Enhanced error handling and user feedback
+- **✅ Admin Dashboard**: Production-ready admin interface with diagnostics
+- **✅ Storage Integration**: Fully tested Storacha integration with proper error handling
+- **✅ Performance**: Optimized content loading and caching strategies
+- **✅ Monitoring**: Added detailed logging and diagnostics tools
 
-## Installation
+## Deployment
 
-To get started, clone the repository and install the dependencies:
+### Prerequisites
 
-```sh
-git clone https://github.com/thisyearnofear/bolt-hackathon
-cd bolt-hackathon
-npm install
+1. **Netlify Account**: Create an account at [Netlify](https://www.netlify.com)
+2. **API Keys**: Generate new API keys for:
+   - OpenAI
+   - Google Gemini
+3. **Storacha Setup**: Run the setup script:
+   ```sh
+   npm run setup-storacha
+   ```
+
+### Environment Variables
+
+Set these in your Netlify dashboard (Settings > Environment variables):
+
+```env
+NODE_ENV=production
+GEMINI_API_KEY=your_new_key
+OPENAI_API_KEY=your_new_key
+STORACHA_SPACE_DID=your_space_did
+STORACHA_PRIVATE_KEY=your_private_key
+STORACHA_PROOF=your_proof
+PRODUCTION_URL=your_netlify_url
 ```
 
-## Build and Run
+### Deployment Steps
 
-For development with hot reloading:
+1. **Connect to GitHub**:
 
-```sh
-npm run dev
-```
+   ```sh
+   # Initialize git if haven't already
+   git init
+   git add .
+   git commit -m "Initial commit"
+   ```
 
-For production build:
+2. **Deploy to Netlify**:
 
-```sh
-npm run build
-```
+   - Connect your repository in Netlify dashboard
+   - Or deploy via Netlify CLI:
+     ```sh
+     netlify deploy --prod
+     ```
 
-For Netlify Functions local development:
+3. **Verify Configuration**:
 
-```sh
-npm run netlify
-```
+   - Check security headers are applied
+   - Verify environment variables are set
+   - Test Storacha connectivity
+   - Confirm function deployment
 
-## Admin Dashboard
+4. **Post-Deployment**:
+   - Visit the admin dashboard (/admin)
+   - Run the diagnostics tool
+   - Initialize content mappings
+   - Test agent interactions
 
-The project includes a dedicated admin dashboard for hackathon organizers, accessible at `/admin`. This dashboard provides various tools for managing the hackathon:
+### Production Checks
 
-1. **Knowledge Base Manager**: Add URLs and documents to the RAG knowledge base for agent learning
-2. **Contestant Management**: View and manage registered teams
-3. **Project Submissions**: Review and evaluate submitted projects
-4. **Storacha Statistics**: Monitor storage usage and operations
+Use the built-in diagnostics tool to verify:
 
-### Knowledge Base Management
+- Storacha connectivity
+- Content mapping functionality
+- API key validity
+- Function deployment status
 
-The Knowledge Base Manager allows organizers to:
+Access the diagnostics via Admin Dashboard > Database > Diagnostics.
 
-- Add website URLs as knowledge sources for specific agent categories
-- Upload documents (PDF, TXT, etc.) to be processed and added to the knowledge base
-- Assign knowledge sources to specific categories (Prizes, Sponsors, Judges, etc.)
-- Remove outdated or irrelevant knowledge sources
-- Track the status of knowledge source processing
-
-All knowledge sources are stored in Storacha for persistence and can be shared across agent categories through ensemble learning mechanisms.
-
-```typescript
-// Example of how knowledge sources are structured
-const knowledgeSource = {
-  url: "https://example.com/docs/prizes",
-  category: "prize",
-  description: "Information about the $50K main prize",
-  status: "processed",
-};
-```
-
-## Netlify Functions Implementation
-
-The project now includes Netlify functions to securely handle Storacha operations:
-
-```typescript
-// netlify/functions/storacha-client.ts
-import { Handler } from "@netlify/functions";
-import { create, type Client } from "@web3-storage/w3up-client";
-
-// Initialize Storacha client
-let _client: Client | null = null;
-
-const handler: Handler = async (event, context) => {
-  // Parse the request
-  const { action, data } = JSON.parse(event.body || "{}");
-
-  // Initialize the client if needed
-  if (!_client) {
-    _client = await create();
-    // Set up authentication...
-  }
-
-  // Handle different actions
-  switch (action) {
-    case "upload":
-      return await handleUpload(data);
-    case "download":
-      return await handleDownload(data);
-    // Other actions...
-  }
-};
-
-export { handler };
-```
-
-## Moving from Simulation to Production
-
-The current implementation now includes real Storacha client interactions through Netlify functions. The integration works as follows:
-
-```typescript
-// In StorachaNetlifyClient.ts
-async uploadAgentData(...): Promise<string> {
-  // Create the data structure
-  const agentData = { agentId, category, input: inputQuery, ... };
-
-  // Convert to base64 for transmission
-  const blob = new Blob([JSON.stringify(agentData)], { type: "application/json" });
-  const base64Content = await this.blobToBase64(blob);
-
-  // Call Netlify function to upload
-  const response = await fetch("/api/storacha-client", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      action: "upload",
-      data: { content: base64Content, filename: `agent-data-${agentId}-${Date.now()}.json` }
-    })
-  });
-
-  const result = await response.json();
-  return result.cid;
-}
-```
-
-## Security Considerations
-
-We've implemented several security measures:
-
-### API Key Protection
-
-All API keys and sensitive credentials are now stored server-side in Netlify functions:
-
-```typescript
-// Environment variables are set in Netlify dashboard, not exposed to client
-const STORACHA_SPACE_DID = process.env.STORACHA_SPACE_DID;
-```
-
-### Data Validation
-
-All user inputs are validated before processing:
-
-```typescript
-// Form validation in ContestantRegistration and ProjectSubmission components
-if (!formData.name || !formData.teamName || !formData.projectDescription) {
-  throw new Error("Please fill in all required fields");
-}
-
-if (formData.twitterHandle && !formData.twitterHandle.startsWith("@")) {
-  setFormData((prev) => ({ ...prev, twitterHandle: `@${prev.twitterHandle}` }));
-}
-```
-
-### Error Handling
-
-Comprehensive error handling throughout the application:
-
-```typescript
-try {
-  // API operations
-} catch (error) {
-  console.error("Operation failed:", error);
-  // User-friendly error messages
-  setError(error.message || "An error occurred");
-}
-```
-
-## Development Roadmap
-
-### Current Progress
+## Current Progress
 
 - ✅ 3D visualization with WebGPU and BatchedMesh
 - ✅ Agent chat interface positioned relative to 3D elements
@@ -215,34 +118,33 @@ try {
 - ✅ Transition from mock data to real Storacha storage
 - ✅ Content mapping to resolve content IDs to actual CIDs
 - ✅ Diagnostics tools for Storacha troubleshooting
-
-### Ready for Testing
-
-- 🧪 Serverless functions for Storacha operations
-- 🧪 Registration and submission flows
-- 🧪 Integration between front-end and serverless backend
-- 🧪 Content initialization and automatic loading
+- ✅ Production-ready security configuration
+- ✅ Serverless functions with proper bundling
+- ✅ Registration and submission flows
+- ✅ Integration between front-end and serverless backend
+- ✅ Content initialization and automatic loading
 
 ### Next Steps
 
-1. **Testing and Debugging** (1-2 days)
+1. **Monitoring and Analytics** (2-3 days)
 
-   - Test content loading and conversion/parsing
-   - Test agents with real knowledge from Storacha
-   - Ensure proper error handling across all flows
-   - Validate end-to-end process from content creation to retrieval
+   - Implement detailed usage analytics
+   - Add performance monitoring
+   - Set up error tracking
+   - Create dashboard for system health
 
-2. **Admin Dashboard Enhancements** (2-3 days)
+2. **Feature Enhancements** (3-4 days)
 
-   - Add analytics dashboard for contestant engagement
-   - Implement team approval workflow
-   - Add knowledge base effectiveness metrics
-   - Create visualization for agent-contestant interactions
+   - Add batch operations for content management
+   - Implement advanced caching strategies
+   - Add export/import functionality
+   - Create backup/restore tools
 
-3. **Deployment and Scaling** (2-3 days)
-   - Set up automated CI/CD pipeline with Netlify
-   - Optimize for performance at scale
-   - Implement monitoring and analytics
+3. **Documentation** (1-2 days)
+   - Create detailed deployment guide
+   - Document all admin features
+   - Add troubleshooting guide
+   - Create user manual
 
 ## License
 

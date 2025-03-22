@@ -13,19 +13,41 @@ function App() {
   const [isDemoReady, setIsDemoReady] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [isGPUAvailable, setIsGPUAvailable] = useState(WebGPU.isAvailable());
+  const [webGPUError, setWebGPUError] = useState<string | null>(null);
   const [selectedBlock, setSelectedBlock] = useState<ABlock>();
 
   useEffect(() => {
     document.body.classList.add("loading");
 
+    // Check for WebGPU support
+    if (!isGPUAvailable) {
+      document.body.classList.remove("loading");
+      setWebGPUError(
+        "WebGPU is not available on your device or browser. Please use Chrome 113+, Edge 113+, or Opera 99+."
+      );
+      return;
+    }
+
     const interval = setInterval(() => {
+      // Check for error state
+      if (document.body.classList.contains("webgpu-error")) {
+        clearInterval(interval);
+        document.body.classList.remove("loading");
+        setWebGPUError(
+          "Failed to initialize WebGPU. This could be due to hardware limitations or browser settings."
+        );
+        return;
+      }
+
       if (Demo.instance != null && Demo.firstRenderDone) {
         setIsDemoReady(true);
         clearInterval(interval);
         document.body.classList.remove("loading");
       }
     }, 100);
-  }, []);
+
+    return () => clearInterval(interval);
+  }, [isGPUAvailable]);
 
   const toggleTheme = () => {
     setIsDarkTheme((prevTheme) => !prevTheme);
@@ -39,79 +61,38 @@ function App() {
 
   return (
     <>
-      <header className="frame">
-        <h1 className="frame__title">The World's Largest Hackathon</h1>
-        <div className="frame__info">
-          <span>🌐 Virtual Event</span>
-          <span>🏆 $1M+ in Prizes</span>
-          <span>📅 TBD</span>
+      <header className="app-header">
+        <div className="header-logo">
+          <h1>Hackathon.AI</h1>
         </div>
-        <nav className="frame__tags">
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              Demo.instance?.setActiveCategory(null);
-            }}
-          >
-            #all
-          </a>
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              Demo.instance?.setActiveCategory("prize");
-              Demo.instance?.activateCategoryAgent("prize");
-            }}
-          >
-            #prizes
-          </a>
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              Demo.instance?.setActiveCategory("sponsor");
-              Demo.instance?.activateCategoryAgent("sponsor");
-            }}
-          >
-            #sponsors
-          </a>
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              Demo.instance?.setActiveCategory("judge");
-              Demo.instance?.activateCategoryAgent("judge");
-            }}
-          >
-            #judges
-          </a>
-          <a href="http://hackathon.dev" target="_blank">
-            #register
-          </a>
-          <Link to="/admin" className="admin-link">
-            #admin
+        <div className="header-nav">
+          <Link to="/admin" className="nav-link admin-link">
+            Admin Dashboard
           </Link>
-        </nav>
+        </div>
       </header>
 
       <div className="content">
-        {!isGPUAvailable && (
-          <div className="demo__infos__container">
-            <div className="demo__infos">
-              <h1 className="frame__title">WebGPU not available</h1>
+        {webGPUError && (
+          <div className="webgpu-error">
+            <div className="error-content">
+              <h2>3D Scene Error</h2>
+              <p>{webGPUError}</p>
               <p>
-                WebGPU is not available on your device or browser. Please use a
-                device or browser that supports WebGPU.
+                You can still access the{" "}
+                <Link to="/admin">Admin Dashboard</Link> to manage your
+                hackathon content.
               </p>
             </div>
           </div>
         )}
-        {!isDemoReady && (
+
+        {!isDemoReady && !webGPUError && (
           <div className="loader-container">
             <span className="loader"></span>
           </div>
         )}
+
         <button
           className="theme-toggle-button"
           onClick={toggleTheme}
@@ -119,6 +100,7 @@ function App() {
         >
           {isDarkTheme ? "☀️" : "🌙"}
         </button>
+
         <ThreeCanvas onBlockClick={setSelectedBlock} />
         <ContestantInfo block={selectedBlock} />
         {Demo.instance && <AgentController demo={Demo.instance} />}
