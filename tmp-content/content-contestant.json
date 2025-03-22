@@ -1,0 +1,15 @@
+{
+  "name": "contestant-content",
+  "description": "Initial contestant content",
+  "items": [
+    {
+      "id": "team1",
+      "name": "Team Alpha",
+      "members": 3,
+      "project": "Project X",
+      "description": "An innovative solution for..."
+    }
+  ],
+  "timestamp": "2025-03-22T01:41:46.438Z",
+  "category": "contestant"
+}

@@ -3,54 +3,57 @@ import { Demo } from "../Demo";
 import { ABlock } from "../lib/ABlock";
 
 interface ThreeCanvasProps {
-    onBlockClick?: (block: ABlock) => void;
+  onBlockClick?: (block: ABlock) => void;
 }
 
 export default function ThreeCanvas({ onBlockClick }: ThreeCanvasProps) {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const demoRef = useRef<Demo | null>(null);
 
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (canvas == null) {
-            throw new Error('Canvas not found');
-        }
-        if( Demo.instance != null) {
-            console.warn("Demo instance already exists : aborting");
-            return;
-        }
-        const demo: Demo = new Demo(canvas);
-        if (onBlockClick) {
-            demo.onBlockClick = onBlockClick;
-        }
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (canvas == null) {
+      throw new Error("Canvas not found");
+    }
 
-        (async () => {
-            await demo.init();
-        })();
+    // Always create a fresh instance for better stability
+    demoRef.current = new Demo(canvas);
+    if (onBlockClick) {
+      demoRef.current.onBlockClick = onBlockClick;
+    }
 
-    }, []);
+    // Initialize the demo instance
+    demoRef.current.init();
 
-    
-    useEffect(() => {
-        const canvas: HTMLCanvasElement | null = canvasRef.current;
+    // Cleanup function to fully dispose the demo when component unmounts
+    return () => {
+      if (demoRef.current) {
+        demoRef.current.dispose();
+        demoRef.current = null;
+        console.log("Fully disposed Demo instance in ThreeCanvas component");
+      }
+    };
+  }, [onBlockClick]);
 
-        const resizeCanvas = () => {
-            if (canvas == null) throw new Error('Canvas not found');
+  useEffect(() => {
+    const canvas: HTMLCanvasElement | null = canvasRef.current;
 
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            canvas.style.width = window.innerWidth + 'px';
-            canvas.style.height = window.innerHeight + 'px';
-        }
-        window.addEventListener('resize', resizeCanvas);
+    const resizeCanvas = () => {
+      if (canvas == null) throw new Error("Canvas not found");
 
-        resizeCanvas();
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      canvas.style.width = window.innerWidth + "px";
+      canvas.style.height = window.innerHeight + "px";
+    };
+    window.addEventListener("resize", resizeCanvas);
 
-        return () => {
-            window.removeEventListener('resize', resizeCanvas);
-        }
-    }, []);
+    resizeCanvas();
 
-    return (
-        <canvas ref={canvasRef} id="threecanvas"></canvas>
-    );
+    return () => {
+      window.removeEventListener("resize", resizeCanvas);
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} id="threecanvas"></canvas>;
 }

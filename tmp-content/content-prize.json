@@ -1,0 +1,20 @@
+{
+  "name": "prize-content",
+  "description": "Initial prize content",
+  "items": [
+    {
+      "id": "prize1",
+      "name": "Grand Prize",
+      "amount": "$5,000",
+      "description": "Best overall project"
+    },
+    {
+      "id": "prize2",
+      "name": "Innovation Award",
+      "amount": "$2,500",
+      "description": "Most innovative solution"
+    }
+  ],
+  "timestamp": "2025-03-22T01:41:11.038Z",
+  "category": "prize"
+}

@@ -1,0 +1,49 @@
+# Netlify configuration file
+[build]
+  publish = "dist"
+  command = "npm run build"
+  functions = "netlify/functions"
+
+[dev]
+  framework = "#static"
+  port = 8888
+  autoLaunch = false
+
+# Function specific settings
+[functions]
+  # Increase function timeout for Storacha operations
+  node_bundler = "esbuild"
+  external_node_modules = ["@web3-storage/w3up-client"]
+  included_files = ["netlify/functions/**/*"]
+
+# Production security headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Content-Security-Policy = "default-src 'self'; connect-src 'self' https://api.openai.com https://generativelanguage.googleapis.com https://*.netlify.app; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:;"
+
+# Redirect API requests to functions
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+  force = true # Force HTTPS and handle cleanly in production
+
+# Handle CORS for function endpoints in production
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "https://hackathon-bolt.netlify.app"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type"
+
+# Redirect for SPA - keep this last
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  force = false 

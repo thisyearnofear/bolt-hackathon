@@ -1,0 +1,33 @@
+{
+  "sources": [
+    {
+      "url": "content-prize",
+      "category": "prize",
+      "description": "prize knowledge base",
+      "id": "kb-prize",
+      "status": "uploaded"
+    },
+    {
+      "url": "content-sponsor",
+      "category": "sponsor",
+      "description": "sponsor knowledge base",
+      "id": "kb-sponsor",
+      "status": "uploaded"
+    },
+    {
+      "url": "content-judge",
+      "category": "judge",
+      "description": "judge knowledge base",
+      "id": "kb-judge",
+      "status": "uploaded"
+    },
+    {
+      "url": "content-contestant",
+      "category": "contestant",
+      "description": "contestant knowledge base",
+      "id": "kb-contestant",
+      "status": "uploaded"
+    }
+  ],
+  "timestamp": "2025-03-22T01:41:57.885Z"
+}

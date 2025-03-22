@@ -1,0 +1,15 @@
+{
+  "name": "sponsor-content",
+  "description": "Initial sponsor content",
+  "items": [
+    {
+      "id": "sponsor1",
+      "name": "Acme Corp",
+      "tier": "Gold",
+      "website": "https://example.com",
+      "description": "Leading technology provider"
+    }
+  ],
+  "timestamp": "2025-03-22T01:41:22.706Z",
+  "category": "sponsor"
+}

@@ -1,0 +1,17 @@
+{
+  "name": "judge-content",
+  "description": "Initial judge content",
+  "items": [
+    {
+      "id": "judge1",
+      "name": "Jane Smith",
+      "expertise": [
+        "AI",
+        "Blockchain"
+      ],
+      "description": "Industry expert with 10+ years experience"
+    }
+  ],
+  "timestamp": "2025-03-22T01:41:34.233Z",
+  "category": "judge"
+}
