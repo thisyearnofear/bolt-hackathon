@@ -12,12 +12,17 @@ export const handler: Handler = async (event, context) => {
   const headers: Record<string, string> = {
     "Access-Control-Allow-Origin":
       process.env.NODE_ENV === "production"
-        ? "https://hackathon-bolt.netlify.app"
+        ? process.env.PRODUCTION_URL || "https://hackathon-bolt.netlify.app"
         : "*",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Content-Type": "application/json",
   };
+
+  // Log CORS configuration for debugging
+  console.log(
+    `CORS Origin set to: ${headers["Access-Control-Allow-Origin"]}, NODE_ENV: ${process.env.NODE_ENV}`
+  );
 
   // Handle preflight OPTIONS request
   if (event.httpMethod === "OPTIONS") {

@@ -16,16 +16,6 @@
   external_node_modules = ["@web3-storage/w3up-client"]
   included_files = ["netlify/functions/**/*"]
 
-# Production security headers
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "DENY"
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
-    Content-Security-Policy = "default-src 'self'; connect-src 'self' https://api.openai.com https://generativelanguage.googleapis.com https://*.netlify.app; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:;"
-
 # Redirect API requests to functions
 [[redirects]]
   from = "/api/*"
@@ -33,13 +23,33 @@
   status = 200
   force = true # Force HTTPS and handle cleanly in production
 
-# Handle CORS for function endpoints in production
+# Handle CORS for function endpoints specifically for production
 [[headers]]
-  for = "/api/*"
+  for = "/.netlify/functions/*"
   [headers.values]
-    Access-Control-Allow-Origin = "https://hackathon-bolt.netlify.app"
+    Access-Control-Allow-Origin = "*"  # Will be restricted to your domain in production by the function code
     Access-Control-Allow-Methods = "GET, POST, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
+    Access-Control-Max-Age = "86400"
+
+# Special CSP configuration for development
+[context.development.environment]
+  CSP_DEVELOPMENT = "true"
+
+[context.development.headers]
+  for = "/*"
+  [context.development.headers.values]
+    Content-Security-Policy = "default-src 'self'; connect-src 'self' http://localhost:* http://127.0.0.1:* https://api.openai.com https://generativelanguage.googleapis.com https://*.netlify.app https://w3s.link https://*.ipfs.dweb.link https://ipfs.io https://*.infura-ipfs.io wss://*.bridge.walletconnect.org; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; media-src 'self' https: blob:; worker-src 'self' blob:;"
+
+# For production, keep original security headers but update the connect-src to include additional services
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Content-Security-Policy = "default-src 'self'; connect-src 'self' https://api.openai.com https://generativelanguage.googleapis.com https://*.netlify.app https://w3s.link https://*.ipfs.dweb.link https://ipfs.io https://*.infura-ipfs.io wss://*.bridge.walletconnect.org; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; media-src 'self' https: blob:; worker-src 'self' blob:;"
 
 # Redirect for SPA - keep this last
 [[redirects]]
