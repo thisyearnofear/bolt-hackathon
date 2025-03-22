@@ -1832,7 +1832,8 @@
 }
 
 .admin-nav {
-  background: white;
+  background: rgb(40, 117, 200);
+  background-color: #0066cc;
   padding: 1rem 2rem;
   border-bottom: 1px solid #dee2e6;
   display: flex;

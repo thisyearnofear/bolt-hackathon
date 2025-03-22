@@ -4,12 +4,14 @@ import { AgentChat } from "./AgentChat";
 import { ABlock } from "../lib/ABlock";
 import { AgentService } from "../lib/AgentService";
 import { ChatMessage } from "../lib/ContestantData";
+import { ContestantData } from "../lib/ContestantData";
 
 interface AgentControllerProps {
   demo: Demo;
+  activeAgent: ContestantData;
 }
 
-export function AgentController({ demo }: AgentControllerProps) {
+export function AgentController({ demo, activeAgent }: AgentControllerProps) {
   const [selectedBlock, setSelectedBlock] = useState<ABlock | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
@@ -159,8 +161,10 @@ export function AgentController({ demo }: AgentControllerProps) {
 
   return (
     <AgentChat
-      contestant={selectedBlock.contestant}
-      onClose={handleCloseChat}
+      contestant={activeAgent}
+      onClose={() => {
+        demo.setActiveCategory(null);
+      }}
       agentPosition={agentScreenPosition}
     />
   );

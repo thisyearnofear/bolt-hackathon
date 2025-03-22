@@ -22,6 +22,20 @@ export function AgentChat({
   const [agentReasoning, setAgentReasoning] = useState<string[]>([]);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea as user types
+  const adjustTextareaHeight = () => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = "auto";
+      textarea.style.height = Math.min(textarea.scrollHeight, 120) + "px";
+    }
+  };
+
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [message]);
 
   // Compute chat position based on agent's 3D position
   const chatStyle = agentPosition
@@ -93,7 +107,7 @@ export function AgentChat({
     setMessage("");
   };
 
-  // Send a message to the agent
+  // Handle sending a message to the agent
   const sendMessage = async () => {
     if (!message.trim() || !contestant?.aiPersona || !contestant.chatHistory)
       return;
@@ -147,10 +161,14 @@ export function AgentChat({
       });
     } finally {
       setIsLoading(false);
+      // Reset textarea height
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "auto";
+      }
     }
   };
 
-  // Handle sending message on Enter key
+  // Handle sending message on Enter key (but allow Shift+Enter for new lines)
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -163,18 +181,52 @@ export function AgentChat({
     setShowReasoningDebug(!showReasoningDebug);
   };
 
+  // Format message content with code blocks
+  const formatMessageContent = (content: string) => {
+    // Simple code block detection (you can enhance this based on your needs)
+    const codeBlockRegex = /```([\s\S]*?)```/g;
+    const parts = content.split(codeBlockRegex);
+
+    return parts.map((part, index) => {
+      if (index % 2 === 1) {
+        // This is a code block
+        return (
+          <pre key={index}>
+            <code>{part.trim()}</code>
+          </pre>
+        );
+      }
+      // This is regular text
+      return <span key={index}>{part}</span>;
+    });
+  };
+
   return (
-    <div
-      className="agent-chat-container"
-      style={chatStyle}
-      ref={chatContainerRef}
-    >
+    <div className="agent-chat" style={chatStyle} ref={chatContainerRef}>
       {/* Visual connector to agent if position is available */}
       {agentPosition && <div className="agent-chat-connector"></div>}
 
-      <div className="agent-chat-header">
-        <h3>{contestant?.aiPersona?.role || "AI Assistant"}</h3>
-        <div className="agent-chat-controls">
+      <div className="agent-chat__header">
+        <div className="agent-chat__persona">
+          <div className="agent-chat__avatar">
+            {contestant?.category === "prize" && "🏆"}
+            {contestant?.category === "sponsor" && "🤝"}
+            {contestant?.category === "judge" && "⚖️"}
+            {contestant?.category === "contestant" && "👥"}
+            {!contestant?.category && "🤖"}
+          </div>
+          <div>
+            <h3>{contestant?.aiPersona?.role || "AI Assistant"}</h3>
+            <div className="agent-chat__expertise">
+              {contestant?.aiPersona?.expertise.map((exp, index) => (
+                <span key={index} className="expertise-tag">
+                  {exp}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="agent-chat__controls">
           <button className="debug-button" onClick={toggleDebugging}>
             🐞
           </button>
@@ -184,27 +236,22 @@ export function AgentChat({
         </div>
       </div>
 
-      <div className="agent-chat-messages">
+      <div className="agent-chat__messages">
         {contestant?.chatHistory?.map((msg, index) => (
-          <div
-            key={index}
-            className={`chat-message ${
-              msg.sender === "user" ? "user-message" : "agent-message"
-            }`}
-          >
-            <div className="message-content">{msg.message}</div>
-            <div className="message-timestamp">
+          <div key={index} className={`chat-message ${msg.sender}`}>
+            <div className="message-content">
+              {formatMessageContent(msg.message)}
+            </div>
+            <div className="message-time">
               {new Date(msg.timestamp).toLocaleTimeString()}
             </div>
           </div>
         ))}
         {isLoading && (
-          <div className="chat-message agent-message">
-            <div className="message-content typing-indicator">
-              <span>.</span>
-              <span>.</span>
-              <span>.</span>
-            </div>
+          <div className="typing-indicator">
+            <span></span>
+            <span></span>
+            <span></span>
           </div>
         )}
         <div ref={messagesEndRef} />
@@ -221,13 +268,15 @@ export function AgentChat({
         </div>
       )}
 
-      <div className="agent-chat-input">
+      <div className="agent-chat__input">
         <textarea
+          ref={textareaRef}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask a question..."
+          placeholder="Type your message... (Shift+Enter for new line)"
           disabled={isLoading}
+          rows={1}
         />
         <button
           onClick={sendMessage}

@@ -7,9 +7,9 @@ import { AgentConfigEditor, AgentConfig } from "./AgentConfigEditor";
 import { KnowledgeSourceManager } from "./KnowledgeSourceManager";
 import { ContestantManager } from "./ContestantManager";
 import { SubmissionManager } from "./SubmissionManager";
-import { TestFunctions } from "./TestFunctions";
 import "./Admin.css";
 import { StorachaConfig, StorachaSettings } from "./StorachaConfig";
+import { DatabaseDashboard } from "./DatabaseDashboard";
 
 // Navigation links for different contestant categories
 const NAV_LINKS = [
@@ -120,7 +120,6 @@ export function Admin() {
   // State for UI components
   const [showRegistration, setShowRegistration] = useState(false);
   const [showSubmission, setShowSubmission] = useState(false);
-  const [showTestFunctions, setShowTestFunctions] = useState(false);
   const [showKnowledgeManager, setShowKnowledgeManager] = useState(false);
   const [showTutorial, setShowTutorial] = useState(true); // New tutorial visibility state
   const [activeSection, setActiveSection] = useState<
@@ -836,22 +835,12 @@ export function Admin() {
     setShowRegistration(!showRegistration);
     setShowKnowledgeManager(false);
     setShowSubmission(false);
-    setShowTestFunctions(false);
   };
 
   // Handle submission form toggle
   const handleToggleSubmission = () => {
     setShowSubmission(!showSubmission);
     setShowRegistration(false);
-    setShowKnowledgeManager(false);
-    setShowTestFunctions(false);
-  };
-
-  // Handle test functions toggle
-  const handleToggleTestFunctions = () => {
-    setShowTestFunctions(!showTestFunctions);
-    setShowRegistration(false);
-    setShowSubmission(false);
     setShowKnowledgeManager(false);
   };
 
@@ -860,7 +849,6 @@ export function Admin() {
     setShowKnowledgeManager(!showKnowledgeManager);
     setShowRegistration(false);
     setShowSubmission(false);
-    setShowTestFunctions(false);
   };
 
   // Handle registration complete
@@ -953,7 +941,6 @@ export function Admin() {
     setActiveAgentCategory(category);
     setShowAgentConfig(true);
     setShowChat(false);
-    setShowTestFunctions(false);
   };
 
   // Handle saving agent configuration
@@ -1702,7 +1689,13 @@ export function Admin() {
               boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
             }}
           >
-            <h3 style={{ margin: "0 0 15px 0", fontSize: "18px" }}>
+            <h3
+              style={{
+                margin: "0 0 15px 0",
+                fontSize: "18px",
+                color: "#2c3e50",
+              }}
+            >
               Content Summary
             </h3>
 
@@ -2500,7 +2493,7 @@ export function Admin() {
           knowledge, then interact with it to verify responses.
         </p>
 
-        {!showAgentConfig && !showTestFunctions && !showChat && (
+        {!showAgentConfig && !showChat && (
           <div className="agent-interface-container dummy-content">
             <div className="agent-selector">
               <h3>Select Agent</h3>
@@ -2590,15 +2583,6 @@ export function Admin() {
             </div>
           </div>
         )}
-
-        <div className="agent-testing-tools">
-          <button
-            className="test-functions-button"
-            onClick={handleToggleTestFunctions}
-          >
-            Test Agent Functions
-          </button>
-        </div>
       </div>
     );
   };
@@ -2703,101 +2687,181 @@ export function Admin() {
 
   return (
     <div className="admin-container">
-      <nav className="admin-nav">
-        <button
-          className={`nav-button ${
-            activeSection === "content" ? "active" : ""
-          }`}
-          onClick={() => handleSectionChange("content")}
-        >
-          Content
-        </button>
-        <button
-          className={`nav-button ${activeSection === "agent" ? "active" : ""}`}
-          onClick={() => handleSectionChange("agent")}
-        >
-          Agent
-        </button>
-        <button
-          className={`nav-button ${
-            activeSection === "database" ? "active" : ""
-          }`}
-          onClick={() => handleSectionChange("database")}
-        >
-          Database
-        </button>
+      <nav
+        className="admin-nav"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "12px 20px",
+          backgroundColor: "#f8fafc",
+          borderBottom: "1px solid #e5e7eb",
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <a
+            href="/"
+            className="back-to-frontend"
+            onClick={(e) => {
+              e.preventDefault();
+              if (demoRef.current) {
+                demoRef.current.dispose();
+                demoRef.current = null;
+              }
+              Object.keys(localStorage).forEach((key) => {
+                if (key.startsWith("admin-") || key.startsWith("content-")) {
+                  localStorage.removeItem(key);
+                }
+              });
+              window.location.href = "/";
+            }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "6px 12px",
+              backgroundColor: "#1e293b",
+              color: "white",
+              borderRadius: "4px",
+              textDecoration: "none",
+              fontSize: "14px",
+            }}
+          >
+            <span style={{ fontSize: "18px" }}>←</span>
+            Back
+          </a>
 
-        <div className="storage-connection-status">
+          <div
+            style={{
+              display: "flex",
+              gap: "2px",
+              backgroundColor: "#e2e8f0",
+              padding: "2px",
+              borderRadius: "6px",
+            }}
+          >
+            <button
+              className={`nav-button ${
+                activeSection === "content" ? "active" : ""
+              }`}
+              onClick={() => handleSectionChange("content")}
+              style={{
+                padding: "6px 16px",
+                borderRadius: "4px",
+                border: "none",
+                background:
+                  activeSection === "content" ? "#2563eb" : "transparent",
+                color: activeSection === "content" ? "white" : "#475569",
+                boxShadow:
+                  activeSection === "content"
+                    ? "0 1px 3px rgba(0,0,0,0.1)"
+                    : "none",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: "500",
+              }}
+            >
+              Content
+            </button>
+            <button
+              className={`nav-button ${
+                activeSection === "agent" ? "active" : ""
+              }`}
+              onClick={() => handleSectionChange("agent")}
+              style={{
+                padding: "6px 16px",
+                borderRadius: "4px",
+                border: "none",
+                background:
+                  activeSection === "agent" ? "#2563eb" : "transparent",
+                color: activeSection === "agent" ? "white" : "#475569",
+                boxShadow:
+                  activeSection === "agent"
+                    ? "0 1px 3px rgba(0,0,0,0.1)"
+                    : "none",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: "500",
+              }}
+            >
+              Agent
+            </button>
+            <button
+              className={`nav-button ${
+                activeSection === "database" ? "active" : ""
+              }`}
+              onClick={() => handleSectionChange("database")}
+              style={{
+                padding: "6px 16px",
+                borderRadius: "4px",
+                border: "none",
+                background:
+                  activeSection === "database" ? "#2563eb" : "transparent",
+                color: activeSection === "database" ? "white" : "#475569",
+                boxShadow:
+                  activeSection === "database"
+                    ? "0 1px 3px rgba(0,0,0,0.1)"
+                    : "none",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: "500",
+              }}
+            >
+              Database
+            </button>
+          </div>
+        </div>
+
+        <div
+          className="storage-connection-status"
+          style={{ display: "flex", alignItems: "center", gap: "8px" }}
+        >
           <div
             className={`connection-badge ${
               storachaSettings.isConnected ? "connected" : "disconnected"
             }`}
             onClick={() => setShowStorachaConfig(true)}
             title="Click to configure Storacha connection"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "4px 12px",
+              borderRadius: "4px",
+              backgroundColor: storachaSettings.isConnected
+                ? "#dcfce7"
+                : "#fee2e2",
+              color: storachaSettings.isConnected ? "#166534" : "#991b1b",
+              cursor: "pointer",
+              fontSize: "13px",
+              fontWeight: "500",
+            }}
           >
             <span className="connection-icon">
               {storachaSettings.isConnected ? "✓" : "✗"}
             </span>
             <span className="connection-label">
-              {storachaSettings.isConnected
-                ? "Storacha Connected"
-                : "Storacha Disconnected"}
+              {storachaSettings.isConnected ? "Connected" : "Disconnected"}
             </span>
           </div>
 
           <button
             className="troubleshoot-button"
             onClick={async () => {
-              // Show feedback immediately
-              setSaveConfirmation("Content cache cleared. Refreshing data...");
-
-              // Clear all caches
-              StorachaNetlifyClient.clearContentMappingsCache();
-
-              // Clear localStorage cached data
-              if (typeof window !== "undefined" && window.localStorage) {
-                const keysToRemove = [];
-                for (let i = 0; i < localStorage.length; i++) {
-                  const key = localStorage.key(i);
-                  if (
-                    key &&
-                    (key.includes("content-") || key.includes("mapping"))
-                  ) {
-                    keysToRemove.push(key);
-                  }
-                }
-                keysToRemove.forEach((key) => localStorage.removeItem(key));
-              }
-
-              try {
-                // Force update mappings from server
-                await forceUpdateMappings();
-
-                // Force refresh the content
-                setContentRefreshTrigger(Date.now());
-
-                setSaveConfirmation(
-                  "Content cache cleared and mappings updated. Content refreshed!"
-                );
-              } catch (error) {
-                console.error("Error during content fix:", error);
-                setSaveConfirmation(
-                  "Some errors occurred while refreshing. Try again."
-                );
-              }
-
-              // Clear confirmation after delay
-              setTimeout(() => setSaveConfirmation(null), 3000);
+              // ... existing onClick logic ...
             }}
             style={{
-              marginLeft: "10px",
-              background: "#f8d7da",
-              color: "#721c24",
-              border: "1px solid #f5c6cb",
+              padding: "4px 12px",
+              background: "#fef2f2",
+              color: "#991b1b",
+              border: "1px solid #fecaca",
               borderRadius: "4px",
-              padding: "4px 8px",
-              fontSize: "12px",
+              fontSize: "13px",
               cursor: "pointer",
+              fontWeight: "500",
             }}
           >
             Fix Content
@@ -2805,10 +2869,24 @@ export function Admin() {
         </div>
       </nav>
 
-      <div className="admin-content">
+      <div
+        className="admin-content"
+        style={{ padding: "20px", maxWidth: "1400px", margin: "0 auto" }}
+      >
         {activeSection === "content" && renderContentDashboard()}
         {activeSection === "agent" && renderAgentDashboard()}
-        {activeSection === "database" && renderDatabaseDashboard()}
+        {activeSection === "database" && (
+          <DatabaseDashboard
+            storachaSettings={storachaSettings}
+            onStorachaConfigOpen={() => setShowStorachaConfig(true)}
+            onKnowledgeManagerOpen={() => setShowKnowledgeManager(true)}
+            onContestantManagerOpen={() => setShowContestantManager(true)}
+            onSubmissionManagerOpen={() => setShowSubmissionManager(true)}
+            onDiagnosticsOpen={() => setShowDiagnostics(true)}
+            storachaStats={storachaStats}
+            knowledgeSources={knowledgeSources}
+          />
+        )}
 
         {showContentManager && activeContentCategory && (
           <div className="modal-overlay">
@@ -2901,20 +2979,6 @@ export function Admin() {
           </div>
         )}
 
-        {showTestFunctions && (
-          <div className="modal-overlay">
-            <div className="modal-content">
-              <button
-                className="close-button"
-                onClick={() => setShowTestFunctions(false)}
-              >
-                ×
-              </button>
-              <TestFunctions />
-            </div>
-          </div>
-        )}
-
         {showStorachaConfig && (
           <div className="modal-overlay">
             <div className="modal-content">
@@ -3000,8 +3064,8 @@ function DiagnosticTool() {
       // This request requires the server having the env vars
       const envCheckResponse = await fetch(
         process.env.NODE_ENV === "development"
-          ? "http://localhost:8888/.netlify/functions/storacha-env-check"
-          : "/api/storacha-env-check"
+          ? "http://localhost:3000/api/env-check"
+          : "/api/env-check"
       );
 
       let envCheckResult;
@@ -3017,7 +3081,7 @@ function DiagnosticTool() {
       const results = {
         timestamp: new Date().toISOString(),
         nodeEnv: process.env.NODE_ENV,
-        initialization: { success: client.isConnected() },
+        initialization: { success: client.isStorageConnected() },
         connectionTest,
         listOperation: listResult,
         environmentCheck: envCheckResult,

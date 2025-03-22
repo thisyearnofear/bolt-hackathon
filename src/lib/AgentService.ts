@@ -1,5 +1,6 @@
 import { AIPersona, ChatMessage, ContestantCategory } from "./ContestantData";
 import { LlamaIndexService } from "./storacha/LlamaIndexService";
+import { GeminiService } from "./GeminiService";
 
 // This is a placeholder - in a real implementation, you'd import the actual LlamaIndex TS modules
 // import { OpenAIAgent, FunctionTool, SimpleDirectoryReader, VectorStoreIndex, QueryEngineTool } from "llamaindex";
@@ -52,6 +53,7 @@ const KNOWLEDGE_BASES = {
  */
 export class AgentService {
   private static llamaIndexService: LlamaIndexService | null = null;
+  private static geminiService: GeminiService | null = null;
   private static isInitializing = false;
   private static isInitialized = false;
 
@@ -66,6 +68,10 @@ export class AgentService {
     this.isInitializing = true;
 
     try {
+      // Initialize Gemini service first
+      this.geminiService = GeminiService.getInstance();
+      await this.geminiService.initialize();
+
       // Initialize LlamaIndex service with the provided space DID
       this.llamaIndexService = new LlamaIndexService(spaceDid);
       await this.llamaIndexService.initialize();
@@ -75,10 +81,15 @@ export class AgentService {
 
       this.isInitialized = true;
       console.log(
-        "AgentService initialized with LlamaIndex and Storacha integration"
+        "AgentService initialized with Gemini and LlamaIndex integration"
       );
     } catch (error) {
       console.error("Failed to initialize AgentService:", error);
+      // Even if LlamaIndex fails, we can still use Gemini
+      if (this.geminiService) {
+        this.isInitialized = true;
+        console.log("AgentService initialized with Gemini only");
+      }
     } finally {
       this.isInitializing = false;
     }
@@ -98,38 +109,26 @@ export class AgentService {
       await this.initialize();
     }
 
-    // Generate a unique agent ID based on category and persona
-    const agentId = `${category}-${persona.role
-      .toLowerCase()
-      .replace(/\s+/g, "-")}`;
-
-    // If LlamaIndex service is available, use RAG with ensemble learning
-    if (this.llamaIndexService && this.isInitialized) {
-      console.log(`Using LlamaIndex RAG for agent response (${category})`);
-
-      // Adding response delay to simulate network latency
-      await new Promise((resolve) => setTimeout(resolve, RESPONSE_DELAY));
-
-      try {
-        // Generate response using RAG and ensemble learning
-        const { response, reasoning } =
-          await this.llamaIndexService.generateRagResponse(
-            message,
-            category,
-            agentId
-          );
-
-        console.log(`Agent reasoning:`, reasoning);
-        return response;
-      } catch (error) {
-        console.error("Error generating RAG response:", error);
-        // Fall back to mock response if RAG fails
-        return this.generateMockResponse(message, persona, history);
+    try {
+      // Always use Gemini for chat responses
+      if (!this.geminiService) {
+        throw new Error("Gemini service not initialized");
       }
-    } else {
-      // Fall back to mock response if LlamaIndex is not initialized
-      console.log(`Using mock response generator (${category})`);
-      return this.generateMockResponse(message, persona, history);
+
+      const response = await this.geminiService.generateResponse(
+        message,
+        category,
+        persona,
+        history
+      );
+
+      // Log for debugging
+      console.log("Gemini response:", response);
+
+      return response.text;
+    } catch (error) {
+      console.error("Error generating response:", error);
+      throw error;
     }
   }
 
